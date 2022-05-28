@@ -45,3 +45,4 @@ class Window(QWidget):
         url = self.inputField.text()
         yt = YouTube(url)
         yt.streams.get_highest_resolution().download()
+        self.status_label.setText('Download completed!')
