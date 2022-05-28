@@ -17,9 +17,9 @@ class Window(QWidget):
         # Canvas
         stylesheet = ('''
             QWidget {
-                font-size: 12px;
+                font-size: 18px;
             }
-            
+
             QPushButton {
                 font-size: 20px;
             }
@@ -34,20 +34,14 @@ class Window(QWidget):
         label = QLabel('Youtube video URL')
         self.inputField = QLineEdit()
         button = QPushButton('Download')
-        self.status_label = QLabel()
 
         layout.addWidget(label)
         layout.addWidget(self.inputField)
         layout.addWidget(button)
-        layout.addWidget(self.status_label)
 
         button.clicked.connect(self.start_download)
 
     def start_download(self):
         url = self.inputField.text()
         yt = YouTube(url)
-        print('Downloading video... Please Wait!')
-        self.status_label.setText('Downloading video... Please Wait!')
-        video = yt.streams.get_highest_resolution().download()
-        print(f'Download completed at: {video}')
-        self.status_label.setText(f'Download completed!')
+        yt.streams.get_highest_resolution().download()
