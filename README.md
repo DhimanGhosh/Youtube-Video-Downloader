@@ -8,10 +8,12 @@ If python >= 3.8.5 is installed on the machine:
 
 > Windows:
 ```
+$ pip install -r requirements.txt
 $ python app.py
 ```
 
-> Mac:
+> Mac / Linux:
 ```
+$ pip3 install -r requirements.txt
 $ python3 app.py
 ```
