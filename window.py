@@ -5,6 +5,9 @@ from glob import glob
 import subprocess
 import os
 import shutil
+import urllib.request
+import json
+import urllib
 
 
 class Window(QWidget):
@@ -96,7 +99,13 @@ class Window(QWidget):
             self.__display_status('Error in Audio Download!')
 
     def __save_to_dialog(self):
-        downloads_directory = f"C:\\Users\\{os.environ.get('USERNAME')}\\Downloads"
+        url = self.url.text()
+        if url:
+            title = self.__get_video_title(url)
+            title = title.replace('|', ', ')
+        else:
+            title = 'Sample'
+        downloads_directory = f"C:\\Users\\{os.environ.get('USERNAME')}\\Downloads\\{title}"
         downloadable_formats = "Audio (*.mp3)\nVideo (*.mp4)"
         path, _ = QFileDialog.getSaveFileName(parent=self, caption='Save File', directory=downloads_directory, filter=downloadable_formats, initialFilter='File')
         self.save_to_path.setText(path.replace('/', os.sep))
@@ -113,3 +122,14 @@ class Window(QWidget):
                 move_to_path = os.sep.join(move_to_path.split(os.sep)[:-1]) + os.sep + move_to_path.split(os.sep)[-1].split('.')[0] + media_extension
             shutil.copy(downloaded_file, move_to_path)
             os.remove(downloaded_file)
+
+    def __get_video_title(self, url):
+        params = {"format": "json", "url": url}
+        video_url = "https://www.youtube.com/oembed"
+        query_string = urllib.parse.urlencode(params)
+        video_url += "?" + query_string
+
+        with urllib.request.urlopen(video_url) as response:
+            response_text = response.read()
+            data = json.loads(response_text.decode())
+            return data['title']
