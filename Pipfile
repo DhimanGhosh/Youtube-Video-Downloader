@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 pytube = "==12.1.0"
 PyQt6 = "==6.3.0"
+auto-py-to-exe = "*"
+youtube-dl = "==2021.12.17"
 
 [dev-packages]
 
