@@ -22,5 +22,3 @@ App Previews:
 
 - Mac:
 
-![mac](https://user-images.githubusercontent.com/22936568/170843967-de307ec2-3d84-49a8-bfa0-e2ab6726bcb2.png)
-
