@@ -1,135 +1,150 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QFileDialog, QHBoxLayout
-from PyQt6.QtGui import QIcon
-from pytube import YouTube
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QLabel,
+    QLineEdit,
+    QHBoxLayout,
+    QFileDialog
+)
+from PyQt6.QtGui import (
+    QIcon
+)
 from glob import glob
-import subprocess
 import os
-import shutil
-import urllib.request
-import json
-import urllib
+from config import widgets, window
+from downloader import download, video
 
 
 class Window(QWidget):
+
+    # region constants
+    X_VALUE = 800
+    Y_VALUE = 450
+    WIDTH = 350
+    HEIGHT = 250
+    APP_LABEL = 'YouTube Downloader'
+    URL_LABEL = 'Youtube video URL'
+    SAVE_TO_LABEL = 'Save File To...'
+    BROWSE_LABEL = 'Browse'
+    DOWNLOAD_VIDEO_LABEL = 'Download Video'
+    DOWNLOAD_AUDIO_LABEL = 'Download Audio'
+    STYLESHEET_FILE = 'stylesheet.css'
+    APP_ICON = 'download.ico'
+    # endregion constants
+
+    # region colors
+    RESET = 'white'
+    SUCCESS = 'green'
+    WARNING = 'yellow'
+    ERROR = 'red'
+    # endregion colors
+
     def __init__(self):
         super().__init__()
 
-        self.icon = 'download.ico'
+        # region App Window
+        self.setWindowIcon(QIcon(Window.APP_ICON))
+        self.setWindowTitle(Window.APP_LABEL)
+        self.setGeometry(Window.X_VALUE, Window.Y_VALUE, Window.WIDTH, Window.HEIGHT)
+        self.setFixedWidth(Window.WIDTH)
+        self.setFixedHeight(Window.HEIGHT)
+        # endregion App Window
 
-        # App Window
-        self.setWindowIcon(QIcon(self.icon))
-        self.setWindowTitle('YouTube Downloader')
-        self.setGeometry(800, 450, 350, 250)  # X, Y, W, H
-        self.setFixedWidth(350)
-        self.setFixedHeight(250)
+        # region Canvas
+        with open(Window.STYLESHEET_FILE, 'r') as f:
+            self.setStyleSheet(f.read())
+        # endregion Canvas
 
-        # Canvas
-        stylesheet = ('''
-            QWidget {
-                font-size: 14px;
-            }
-        ''')
-        self.setStyleSheet(stylesheet)
-
-        # Layout
+        # region Layout
         layout = QVBoxLayout()
         self.setLayout(layout)
+        # endregion Layout
 
-        # Widgets
-        # URL
-        label = QLabel('Youtube video URL')
-        self.url = QLineEdit()
+        # region Widgets
+        # region URL
+        url_label = QLabel(Window.URL_LABEL)
+        self.__url = QLineEdit()
+        # endregion URL
 
-        # Save To (Horizontal Layout)
-        save_to_label = QLabel('Save File To...')
-        save_to_layout = QHBoxLayout()
-        self.save_to_path = QLineEdit()
-        save_to_btn = QPushButton('Browse')
-        save_to_layout.addWidget(self.save_to_path, )
-        save_to_layout.addWidget(save_to_btn)
+        # region Save To (Horizontal Layout)
+        self.__save_to_label = QLabel(Window.SAVE_TO_LABEL)
+        self.__save_to_layout = QHBoxLayout()
+        self.__save_to_path = QLineEdit()
+        self.__save_to_browse_button = QPushButton(Window.BROWSE_LABEL)
+        widgets.change_pointer_to_hand(self.__save_to_browse_button)
+        self.__save_to_layout.addWidget(self.__save_to_path, )
+        self.__save_to_layout.addWidget(self.__save_to_browse_button)
+        # endregion Save To (Horizontal Layout)
 
-        # Download
-        download_button = QPushButton('Download Video')
-        download_mp3_button = QPushButton('Download Audio')
+        # region Buttons
+        self.__download_video_button = QPushButton(Window.DOWNLOAD_VIDEO_LABEL)
+        widgets.change_pointer_to_hand(self.__download_video_button)
+        self.__download_audio_button = QPushButton(Window.DOWNLOAD_AUDIO_LABEL)
+        widgets.change_pointer_to_hand(self.__download_audio_button)
+        # endregion Buttons
 
-        # Status
-        self.status_label = QLabel()
+        # Download Progress Bar
+        # self.__progress_bar = ProgressBar()
 
-        layout.addWidget(label)
-        layout.addWidget(self.url)
-        layout.addWidget(save_to_label)
-        layout.addLayout(save_to_layout)
-        layout.addWidget(download_button)
-        layout.addWidget(download_mp3_button)
-        layout.addWidget(self.status_label)
+        # region Status
+        self.__status_label = QLabel()
+        # endregion Status
+        # endregion Widgets
 
-        download_button.clicked.connect(self.__start_download)
-        download_mp3_button.clicked.connect(self.__start_download_mp3)
-        save_to_btn.clicked.connect(self.__save_to_dialog)
+        # region Add widgets to layout
+        layout.addWidget(url_label)
+        layout.addWidget(self.__url)
+        layout.addWidget(self.__save_to_label)
+        layout.addLayout(self.__save_to_layout)
+        layout.addWidget(self.__download_video_button)
+        layout.addWidget(self.__download_audio_button)
+        # layout.addWidget(self.__progress_bar)
+        layout.addWidget(self.__status_label)
+        # endregion Add widgets to layout
 
-    def __start_download(self):
-        url = self.url.text()
-        yt = YouTube(url)
-        self.__display_status('Downloading video... Please Wait!')
-        yt.streams.get_highest_resolution().download()
-        downloaded_file = glob('*.mp4')[0]
-        if downloaded_file:
-            self.__move_to(downloaded_file=downloaded_file, media_extension='.mp4')
-            self.__display_status('Video Download completed!')
-        else:
-            self.__display_status('Error in Video Download!')
-
-    def __start_download_mp3(self):
-        url = self.url.text()
-        self.__display_status('Downloading Audio... Please Wait!')
-        yt = YouTube(url)
-        yt.streams.get_highest_resolution().download()
-        video_file = glob('*.mp4')[0]
-        video_file_rename = 'video.'+video_file.split('.')[-1]
-        audio_file = 'audio.mp3'
-        os.rename(video_file, video_file_rename)
-        subprocess.call(f'ffmpeg -i {video_file_rename} -vn {audio_file}')
-        os.remove(video_file_rename)
-        os.rename(audio_file, video_file.split('.')[0] + '.mp3')
-        downloaded_file = glob('*.mp3')[0]
-        if downloaded_file:
-            self.__move_to(downloaded_file=downloaded_file, media_extension='.mp3')
-            self.__display_status('Audio Download completed!')
-        else:
-            self.__display_status('Error in Audio Download!')
+        # region Bind buttons to functions
+        self.__save_to_browse_button.clicked.connect(self.__save_to_dialog)
+        self.__download_video_button.clicked.connect(self.__start_download_video)
+        self.__download_audio_button.clicked.connect(self.__start_download_audio)
+        # endregion Bind buttons to functions
 
     def __save_to_dialog(self):
-        url = self.url.text()
+        url = self.__url.text()
         if url:
-            title = self.__get_video_title(url)
+            title = video.get_video_title(url)
             title = title.replace('|', ', ')
         else:
             title = 'Sample'
         downloads_directory = f"C:\\Users\\{os.environ.get('USERNAME')}\\Downloads\\{title}"
         downloadable_formats = "Audio (*.mp3)\nVideo (*.mp4)"
-        path, _ = QFileDialog.getSaveFileName(parent=self, caption='Save File', directory=downloads_directory, filter=downloadable_formats, initialFilter='File')
-        self.save_to_path.setText(path.replace('/', os.sep))
+        path, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption='Save File',
+            directory=downloads_directory,
+            filter=downloadable_formats,
+            initialFilter='File'
+        )
+        self.__save_to_path.setText(path.replace('/', os.sep))
 
-    def __display_status(self, msg: str):
-        self.status_label.setText(msg)
+    def __start_download_video(self):
+        url = self.__url.text()
+        window.display_status(status_label=self.__status_label, msg='Downloading video... Please Wait!', wait_time=5)
+        download.download_video(url)
+        downloaded_file = glob('*.mp4')[0]
+        if downloaded_file:
+            video.move_to(save_to_path=self.__save_to_path, downloaded_file=downloaded_file, media_extension='.mp4')
+            window.display_status(status_label=self.__status_label, msg='Video Download completed!')
+        else:
+            window.display_status(status_label=self.__status_label, msg='Error in Video Download!')
 
-    def __move_to(self, downloaded_file, media_extension='.mp4'):
-        move_to_path = self.save_to_path.text()
-        if move_to_path:
-            if '.' not in move_to_path.split(os.sep)[-1]:  # if file extension not specified
-                move_to_path += media_extension
-            if move_to_path.split(os.sep)[-1].split('.')[-1] != media_extension[1:]:  # if incorrect file extension specified
-                move_to_path = os.sep.join(move_to_path.split(os.sep)[:-1]) + os.sep + move_to_path.split(os.sep)[-1].split('.')[0] + media_extension
-            shutil.copy(downloaded_file, move_to_path)
-            os.remove(downloaded_file)
-
-    def __get_video_title(self, url):
-        params = {"format": "json", "url": url}
-        video_url = "https://www.youtube.com/oembed"
-        query_string = urllib.parse.urlencode(params)
-        video_url += "?" + query_string
-
-        with urllib.request.urlopen(video_url) as response:
-            response_text = response.read()
-            data = json.loads(response_text.decode())
-            return data['title']
+    def __start_download_audio(self):
+        url = self.__url.text()
+        window.display_status(status_label=self.__status_label, msg='Downloading audio... Please Wait!', wait_time=5)
+        download.download_audio(url)
+        downloaded_file = glob('*.mp3')[0]
+        if downloaded_file:
+            video.move_to(save_to_path=self.__save_to_path, downloaded_file=downloaded_file, media_extension='.mp3')
+            window.display_status(status_label=self.__status_label, msg='Audio Download completed!')
+        else:
+            window.display_status(status_label=self.__status_label, msg='Error in Audio Download!')
